@@ -1,4 +1,21 @@
-<!DOCTYPE html>
+<?php
+// Production error handling settings
+ini_set('display_errors', '0');
+ini_set('log_errors', '1');
+ini_set('error_log', __DIR__ . '/../logs/php_errors.log');
+error_reporting(E_ALL);
+
+// Define application base path
+define('BASE_PATH', realpath(__DIR__ . '/..'));
+
+// Security headers
+header("X-Frame-Options: DENY");
+header("X-Content-Type-Options: nosniff");
+header("X-XSS-Protection: 1; mode=block");
+header("Referrer-Policy: strict-origin-when-cross-origin");
+header("Content-Security-Policy: default-src 'self'; script-src 'self' https://unpkg.com; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; img-src 'self' data:; font-src 'self' https://fonts.gstatic.com;");
+
+?><!DOCTYPE html>
 <html lang="en">
 <head>
     <meta charset="UTF-8">
@@ -38,30 +55,30 @@
     <link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@300;400;500;600;700;800;900&family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
     
     <!-- Global Styles with Enhanced Typography & Theme System -->
-    <link href="assets/css/globals.css" rel="stylesheet">
+    <link href="/assets/css/globals.css" rel="stylesheet">
     
     <!-- Custom Styles with Enhanced Contrast -->
-    <link href="assets/css/styles.css" rel="stylesheet">
+    <link href="/assets/css/styles.css" rel="stylesheet">
 
     <!-- Tailwind CSS -->
-    <link href="assets/css/tailwind.css" rel="stylesheet">
+    <link href="/assets/css/tailwind.css" rel="stylesheet">
     
     <!-- Lucide Icons -->
     <script src="https://unpkg.com/lucide@latest/dist/umd/lucide.js"></script>
 </head>
 <body class="min-h-screen bg-background">
     <!-- Navigation -->
-    <?php include '../src/components/navigation.php'; ?>
+    <?php include BASE_PATH . '/src/components/navigation.php'; ?>
 
     <!-- Main Content Container -->
     <main id="main-content" class="pt-20">
-        <?php include '../src/components/hero-section.php'; ?>
-        <?php include '../src/components/about-section.php'; ?>
-        <?php include '../src/components/participate-section.php'; ?>
-        <?php include '../src/components/testimonies-section.php'; ?>
-        <?php include '../src/components/faq-section.php'; ?>
-        <?php include '../src/components/newsletter-signup.php'; ?>
-        <?php include '../src/components/footer.php'; ?>
+        <?php include BASE_PATH . '/src/components/hero-section.php'; ?>
+        <?php include BASE_PATH . '/src/components/about-section.php'; ?>
+        <?php include BASE_PATH . '/src/components/participate-section.php'; ?>
+        <?php include BASE_PATH . '/src/components/testimonies-section.php'; ?>
+        <?php include BASE_PATH . '/src/components/faq-section.php'; ?>
+        <?php include BASE_PATH . '/src/components/newsletter-signup.php'; ?>
+        <?php include BASE_PATH . '/src/components/footer.php'; ?>
     </main>
 
     <!-- Loading Spinner -->
@@ -70,7 +87,7 @@
     </div>
 
     <!-- JavaScript -->
-    <script src="assets/js/main.js"></script>
+    <script src="/assets/js/main.js"></script>
     <script>
         // Initialize Lucide icons
         lucide.createIcons();

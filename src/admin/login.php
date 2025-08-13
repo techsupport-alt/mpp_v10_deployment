@@ -4,20 +4,19 @@
  * Works with the new authentication API
  */
 
-// Common session configuration
+require_once __DIR__ . '/../config/security.php';
+
+// Initialize session with security settings
 $is_https = isset($_SERVER['HTTPS']) && $_SERVER['HTTPS'] === 'on';
-
-// Ensure secure session settings
-ini_set('session.cookie_httponly', '1');
-ini_set('session.cookie_secure', $is_https ? '1' : '0');
-ini_set('session.cookie_samesite', 'Lax');
-
 session_start([
-    'cookie_lifetime' => 86400, // 1 day
+    'cookie_lifetime' => SESSION_TIMEOUT,
     'cookie_secure' => $is_https,
     'cookie_httponly' => true,
     'cookie_samesite' => 'Lax'
 ]);
+
+// Generate CSRF token
+$csrf_token = generateCsrfToken();
 
 // Redirect if already logged in
 if (isset($_SESSION['admin_id'])) {
@@ -96,7 +95,7 @@ require_once '../config/database.php';
                     required 
                     class="form-input w-full px-4 py-3 rounded-lg focus:outline-none focus:ring-0 transition-all"
                     placeholder="Enter your username"
-                    value="admin"
+                    placeholder="Enter your username"
                 >
             </div>
 
@@ -109,7 +108,7 @@ require_once '../config/database.php';
                     required 
                     class="form-input w-full px-4 py-3 rounded-lg focus:outline-none focus:ring-0 transition-all"
                     placeholder="Enter your password"
-                    value="password"
+                    placeholder="Enter your password"
                 >
             </div>
 
@@ -129,15 +128,14 @@ require_once '../config/database.php';
             </button>
         </form>
 
-        <!-- Default Credentials Notice -->
-        <div class="mt-8 p-4 bg-yellow-500/20 border border-yellow-500/30 rounded-lg">
-            <h3 class="text-yellow-200 font-semibold text-sm mb-2">Default Credentials</h3>
-            <p class="text-yellow-100 text-xs">
-                <strong>Username:</strong> admin<br>
-                <strong>Password:</strong> password
-            </p>
-            <p class="text-yellow-100 text-xs mt-2">
-                <em>Please change these credentials after first login!</em>
+        <!-- CSRF Token -->
+        <input type="hidden" name="csrf_token" value="<?php echo $csrf_token; ?>">
+        
+        <!-- Rate Limit Warning -->
+        <div id="rate-limit-warning" class="mt-8 p-4 bg-red-500/20 border border-red-500/30 rounded-lg hidden">
+            <h3 class="text-red-200 font-semibold text-sm mb-2">Too Many Attempts</h3>
+            <p class="text-red-100 text-xs">
+                You've exceeded login attempts. Please wait <span id="time-remaining">5</span> minutes before trying again.
             </p>
         </div>
 
@@ -150,6 +148,9 @@ require_once '../config/database.php';
     </div>
 
     <script>
+        // Get CSRF token from hidden input
+        const csrfToken = document.querySelector('input[name="csrf_token"]').value;
+        
         document.getElementById('login-form').addEventListener('submit', async function(e) {
             e.preventDefault();
             
@@ -179,27 +180,32 @@ require_once '../config/database.php';
                         body: JSON.stringify({
                             action: 'login',
                             username: username,
-                            password: password
+                            password: password,
+                            csrf_token: csrfToken
                         })
                     });
                 
                 const data = await response.json();
-                console.log('Login response:', data);
-                
                 if (data.success) {
-                    console.log('Login successful, redirecting to dashboard...');
                     // Successful login - redirect to dashboard after brief delay
                     setTimeout(() => {
                         window.location.href = 'enhanced_dashboard.php';
                     }, 100);
                 } else {
-                    console.log('Login failed:', data.message);
                     // Show error message
                     errorText.textContent = data.message || 'Invalid username or password';
+                    
+                    // Handle rate limiting
+                    if (data.message.includes('Too many login attempts')) {
+                        document.getElementById('rate-limit-warning').classList.remove('hidden');
+                        if (data.attempts_remaining !== undefined) {
+                            document.getElementById('time-remaining').textContent = 
+                                Math.ceil(<?php echo LOGIN_BLOCK_TIME / 60; ?>);
+                        }
+                    }
                     errorDiv.classList.remove('hidden');
                 }
             } catch (error) {
-                console.error('Login error:', error);
                 errorText.textContent = 'Connection error. Please try again.';
                 errorDiv.classList.remove('hidden');
             } finally {

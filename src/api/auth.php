@@ -4,24 +4,30 @@
  * Handles admin login/logout and session management
  */
 
-// Use the SAME session configuration as your dashboard
+// Initialize session with security settings
 $is_https = isset($_SERVER['HTTPS']) && $_SERVER['HTTPS'] === 'on';
-ini_set('session.cookie_httponly', '1');
-ini_set('session.cookie_secure', $is_https ? '1' : '0');
-ini_set('session.cookie_samesite', 'Lax');
-
 session_start([
-    'cookie_lifetime' => 86400, // 1 day
+    'cookie_lifetime' => SESSION_TIMEOUT,
     'cookie_secure' => $is_https,
     'cookie_httponly' => true,
     'cookie_samesite' => 'Lax'
 ]);
 
-// Set dynamic CORS headers
-if (isset($_SERVER['HTTP_ORIGIN'])) {
+// Apply security headers
+applySecurityHeaders();
+
+// Restrict CORS to allowed domains
+$allowedOrigins = [
+    'https://marathonpraise.ng',
+    'https://www.marathonpraise.ng'
+];
+
+if (isset($_SERVER['HTTP_ORIGIN']) && in_array($_SERVER['HTTP_ORIGIN'], $allowedOrigins)) {
     header("Access-Control-Allow-Origin: {$_SERVER['HTTP_ORIGIN']}");
     header('Access-Control-Allow-Credentials: true');
     header('Access-Control-Max-Age: 86400'); // cache for 1 day
+} else {
+    header('Access-Control-Allow-Origin: none');
 }
 
 header('Content-Type: application/json');
@@ -34,7 +40,18 @@ if ($_SERVER['REQUEST_METHOD'] === 'OPTIONS') {
     exit();
 }
 
-require_once '../config/database.php';
+require_once __DIR__ . '/../../config/database.php';
+require_once __DIR__ . '/../../config/security.php';
+
+// Check rate limiting
+if (checkRateLimit('login_attempts', LOGIN_ATTEMPTS_LIMIT, LOGIN_BLOCK_TIME)) {
+    http_response_code(429);
+    echo json_encode(['success' => false, 'message' => 'Too many login attempts. Please try again later.']);
+    exit();
+}
+
+// Generate CSRF token
+generateCsrfToken();
 
 $method = $_SERVER['REQUEST_METHOD'];
 
@@ -55,8 +72,28 @@ try {
                         exit();
                     }
                     
-                    $username = trim($input['username']);
+                    // Validate CSRF token
+                    if (empty($input['csrf_token']) || !validateCsrfToken($input['csrf_token'])) {
+                        http_response_code(403);
+                        echo json_encode(['success' => false, 'message' => 'Invalid CSRF token']);
+                        exit();
+                    }
+
+                    $username = filter_var(trim($input['username']), FILTER_SANITIZE_STRING);
                     $password = trim($input['password']);
+
+                    if (empty($username) || empty($password)) {
+                        http_response_code(400);
+                        echo json_encode(['success' => false, 'message' => 'Username and password required']);
+                        exit();
+                    }
+
+                    // Validate username format
+                    if (!preg_match('/^[a-zA-Z0-9_\-@.]+$/', $username)) {
+                        http_response_code(400);
+                        echo json_encode(['success' => false, 'message' => 'Invalid username format']);
+                        exit();
+                    }
                     
                     // Check admin credentials
                     $stmt = $pdo->prepare("SELECT id, username, password_hash, full_name, role, last_login 
@@ -86,21 +123,36 @@ try {
                             $_SERVER['HTTP_USER_AGENT'] ?? 'unknown'
                         ]);
                         
+                        // Reset login attempts on success
+                        resetRateLimit('login_attempts');
+
+                        // Regenerate session ID to prevent fixation
+                        session_regenerate_id(true);
+
                         echo json_encode([
                             'success' => true,
                             'message' => 'Login successful',
                             'data' => [
                                 'admin_id' => $admin['id'],
-                                'username' => $admin['username'],
-                                'full_name' => $admin['full_name'],
-                                'role' => $admin['role'],
+                                'username' => escapeOutput($admin['username']),
+                                'full_name' => escapeOutput($admin['full_name']),
+                                'role' => escapeOutput($admin['role']),
                                 'last_login' => $admin['last_login']
-                            ]
+                            ],
+                            'csrf_token' => $_SESSION['csrf_token']
                         ]);
                     } else {
                         // Failed login
+                        // Record failed login attempt
+                        recordRateLimitAttempt('login_attempts');
+
                         http_response_code(401);
-                        echo json_encode(['success' => false, 'message' => 'Invalid username or password']);
+                        echo json_encode([
+                            'success' => false, 
+                            'message' => 'Invalid username or password',
+                            'attempts_remaining' => max(0, 5 - ($loginAttempts + 1)),
+                            'csrf_token' => $_SESSION['csrf_token']
+                        ]);
                         
                         // Log failed login attempt
                         $stmt = $pdo->prepare("INSERT INTO admin_activity_log (admin_id, action, ip_address, user_agent, details) 
@@ -176,10 +228,10 @@ try {
     
 } catch (Exception $e) {
     http_response_code(500);
+    error_log("Auth API Error: " . $e->getMessage());
     echo json_encode([
         'success' => false,
-        'message' => 'Authentication error occurred',
-        'error' => $e->getMessage()
+        'message' => 'An authentication error occurred'
     ]);
 }
 ?>

@@ -37,16 +37,20 @@ class Database {
     }
 }
 
-// Database configuration - XAMPP LOCAL SETUP
-define('DB_HOST', 'localhost');           // XAMPP MySQL host
-define('DB_NAME', 'mpp_v10');             // Correct database name
-define('DB_USER', 'root');                // XAMPP default MySQL username
-define('DB_PASS', '');                    // XAMPP default MySQL password (empty)
+// Database configuration for Hostinger
+// Credentials should be set in environment variables or Hostinger's database settings
+define('DB_HOST', getenv('DB_HOST') ?: 'localhost');
+define('DB_NAME', getenv('DB_NAME') ?: 'u123456789_mpp_v10'); // Replace with Hostinger database name
+define('DB_USER', getenv('DB_USER') ?: 'u123456789_admin'); // Replace with Hostinger username
+define('DB_PASS', getenv('DB_PASS') ?: ''); // Set in Hostinger control panel
 define('DB_CHARSET', 'utf8mb4');
-define('DB_SOCKET', '/Applications/XAMPP/xamppfiles/var/mysql/mysql.sock'); // XAMPP MySQL socket
+define('DB_PORT', getenv('DB_PORT') ?: '3306'); // Hostinger default port
 
-// Error reporting (enable for development)
-define('DB_DEBUG', true); // Set to false in production
+// Error reporting - always disabled in production
+define('DB_DEBUG', false); // Never enable debug in production on Hostinger
+
+// Hostinger-specific optimizations
+define('DB_PERSISTENT', false); // Persistent connections not recommended on shared hosting
 
 /**
  * Get PDO database connection
@@ -59,21 +63,22 @@ function getDatabaseConnection() {
     
     if ($pdo === null) {
         try {
-            // Try socket connection first for XAMPP
-            $dsn = "mysql:unix_socket=" . DB_SOCKET . ";dbname=" . DB_NAME . ";charset=" . DB_CHARSET;
+            // Hostinger database connection
+            $dsn = "mysql:host=" . DB_HOST . ";port=" . DB_PORT . ";dbname=" . DB_NAME . ";charset=" . DB_CHARSET;
             
             $options = [
                 PDO::ATTR_ERRMODE => PDO::ERRMODE_EXCEPTION,
                 PDO::ATTR_DEFAULT_FETCH_MODE => PDO::FETCH_ASSOC,
                 PDO::ATTR_EMULATE_PREPARES => false,
                 PDO::MYSQL_ATTR_INIT_COMMAND => "SET NAMES " . DB_CHARSET,
-                PDO::ATTR_TIMEOUT => 10, // Connection timeout
+                PDO::ATTR_TIMEOUT => 5, // Shorter timeout for Hostinger
+                PDO::ATTR_PERSISTENT => DB_PERSISTENT
             ];
             
             $pdo = new PDO($dsn, DB_USER, DB_PASS, $options);
             
             if (DB_DEBUG) {
-                error_log("Database connection successful");
+                error_log("Database connection established");
             }
             
         } catch (PDOException $e) {
@@ -82,9 +87,11 @@ function getDatabaseConnection() {
             
             // Don't expose sensitive information in production
             if (DB_DEBUG) {
-                throw new Exception("Database connection failed: " . $e->getMessage());
+                error_log("Database connection failed: " . $e->getMessage());
+                throw new Exception("Database connection error. Check logs for details.");
             } else {
-                throw new Exception("Database connection failed. Please check your configuration.");
+                error_log("Database connection failed: [redacted]");
+                throw new Exception("Service unavailable. Please try again later.");
             }
         }
     }
