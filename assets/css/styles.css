@@ -1,0 +1,98 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+/* CSS Custom Properties - MMP Brand Colors */
+:root {
+  /* MMP White, Orange & Brown Brand Colors */
+  --mmp-white: #FFFFFF;
+  --mmp-off-white: #FAFAFA;
+  --mmp-light-gray: #F5F5F5;
+  --mmp-cream: #FFF8F0;
+  --mmp-black: #000000;
+  --mmp-near-black: #0A0A0A;
+  --mmp-charcoal: #1A1A1A;
+  --mmp-dark-gray: #2A2A2A;
+  
+  /* Brown Variations */
+  --mmp-brown-darkest: #1A0F0A;
+  --mmp-brown-dark: #2D1810;
+  --mmp-brown-deep: #4A2C1A;
+  --mmp-brown-medium: #6B3E2A;
+  --mmp-brown: #8B4513;
+  --mmp-brown-light: #A0522D;
+  --mmp-brown-lighter: #CD853F;
+  --mmp-tan-dark: #B8860B;
+  --mmp-tan: #D2B48C;
+  --mmp-tan-light: #DDB892;
+  
+  /* Orange Variations */
+  --mmp-orange-darkest: #B8400A;
+  --mmp-orange-dark: #CC5500;
+  --mmp-orange: #FF6600;
+  --mmp-orange-medium: #FF7F33;
+  --mmp-orange-light: #FF8533;
+  --mmp-orange-lighter: #FFB366;
+  --mmp-orange-pale: #FFE5CC;
+  --mmp-orange-cream: #FFF2E5;
+  
+  /* High-contrast text colors for accessibility */
+  --mmp-text-primary: #0A0A0A;
+  --mmp-text-secondary: #1A1A1A;
+  --mmp-text-tertiary: #2A2A2A;
+  --mmp-text-muted: #333333;
+  --mmp-text-light: #555555;
+  
+  /* White text for dark backgrounds */
+  --mmp-text-white: #FFFFFF;
+  --mmp-text-off-white: #FAFAFA;
+  --mmp-text-light-gray: #F0F0F0;
+  
+  /* Theme colors with improved contrast */
+  --background: var(--mmp-white);
+  --foreground: var(--mmp-text-primary);
+  --muted: var(--mmp-light-gray);
+  --muted-foreground: var(--mmp-text-muted);
+  --card: var(--mmp-white);
+  --card-foreground: var(--mmp-text-primary);
+  --border: #E5E5E5;
+  --ring: var(--mmp-orange);
+  --secondary: #F8F9FA;
+  --secondary-foreground: var(--mmp-text-primary);
+}
+
+/* Dark Mode with Better Contrast */
+.dark {
+  --background: var(--mmp-near-black);
+  --foreground: var(--mmp-text-white);
+  --muted: var(--mmp-dark-gray);
+  --muted-foreground: var(--mmp-text-off-white);
+  --card: var(--mmp-charcoal);
+  --card-foreground: var(--mmp-text-white);
+  --border: #555555;
+  --ring: var(--mmp-orange);
+  
+  /* Ensure all text is bright in dark mode */
+  --mmp-text-primary: var(--mmp-text-white);
+  --mmp-text-secondary: var(--mmp-text-off-white);
+  --mmp-text-tertiary: var(--mmp-text-light-gray);
+  --mmp-text-muted: #DDDDDD;
+  
+  /* Dark mode adjustments for brand colors */
+  --mmp-cream: var(--mmp-brown-darkest);
+  --mmp-orange-cream: rgba(255, 102, 0, 0.15);
+  --mmp-light-gray: var(--mmp-dark-gray);
+}
+
+/* Base Styles */
+body {
+  font-family: 'Inter', sans-serif;
+}
+
+.font-heading {
+  font-family: 'Montserrat', sans-serif;
+}
+
+.font-body {
+  font-family: 'Inter', sans-serif;
+}
